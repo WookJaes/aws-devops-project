@@ -12,6 +12,7 @@ import com.member.dto.MemberCreateRequest;
 import com.member.dto.MemberCreateResponse;
 import com.member.service.MemberService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -23,12 +24,14 @@ public class MemberController {
 	private final MemberService memberService;
 
 	@PostMapping("/api/members")
-	public ResponseEntity<MemberCreateResponse> saveMember(@RequestBody MemberCreateRequest request) {
+	public ResponseEntity<MemberCreateResponse> saveMember(@Valid @RequestBody MemberCreateRequest request) {
+		log.info("[API - LOG] 팀원 저장 요청");
 		return ResponseEntity.status(HttpStatus.CREATED).body(memberService.create(request));
 	}
 
 	@GetMapping("/api/members/{id}")
 	public ResponseEntity<MemberCreateResponse> getMember(@PathVariable Long id) {
+		log.info("[API - LOG] 팀원 조회 요청 id = {}", id);
 		return ResponseEntity.status(HttpStatus.OK).body(memberService.getMember(id));
 	}
 }
