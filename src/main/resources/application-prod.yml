@@ -1,12 +1,28 @@
 spring:
+  config:
+    import: aws-parameterstore:/member/prod/
+
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: ${URL}
+    url: jdbc:mysql://${URL}:3306/${DB_NAME}
     username: ${NAME}
     password: ${PASSWORD}
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     database-platform: org.hibernate.dialect.MySQLDialect
     show-sql: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+  info:
+    env:
+      enabled: true
+
+info:
+  team-name: ${TEAM_NAME}
