@@ -29,9 +29,9 @@ jobs:
       - name: Build and test with Gradle
         env:
           SPRING_PROFILES_ACTIVE: local
-          AWS_REGION: ${{ vars.AWS_REGION }}
+          SPRING_CLOUD_AWS_REGION_STATIC: ${{ vars.AWS_REGION }}
           AWS_DEFAULT_REGION: ${{ vars.AWS_REGION }}
-          CLOUD_AWS_S3_BUCKET: member-wj-files
+          SPRING_CLOUD_AWS_S3_BUCKET: member-wj-files
         run: ./gradlew clean test bootJar
 
       # 5. 빌드한 이미지를 올리기 위해 Docker Hub에 로그인
@@ -74,4 +74,6 @@ jobs:
               -e AWS_REGION=${{ vars.AWS_REGION }} \
               -e AWS_DEFAULT_REGION=${{ vars.AWS_REGION }} \
               -e SPRING_CLOUD_AWS_PARAMETERSTORE_REGION=${{ vars.AWS_REGION }} \
+              -e SPRING_CLOUD_AWS_REGION_STATIC=${{ vars.AWS_REGION }} \
+              -e SPRING_CLOUD_AWS_S3_BUCKET=member-wj-files \
               ${{ vars.DOCKER_IMAGE }}:latest
