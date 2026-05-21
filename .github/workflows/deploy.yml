@@ -7,25 +7,26 @@ on:
 
 jobs:
   build-and-deploy:
+    # GitHub Actions 실행 환경을 Ubuntu 최신 버전으로 지정
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Github 레포지토리의 최신 소스 코드를 가져옴
+      # 1. GitHub 레포지토리의 최신 소스 코드 체크아웃
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      # 2. Java 17(Amazon Corretto) 환경 세팅
+      # 2. Java 17(Amazon Corretto) 실행 환경 세팅
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'corretto'
           java-version: '17'
 
-      # 3. Gradle 빌드 스크립트에 실행 권한을 부여
+      # 3. Gradle Wrapper 실행 권한 부여
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # 4. 코드를 빌드하고 테스트를 수행하여 실행 가능한 Jar 파일 생성
+      # 4. 애플리케이션 빌드 및 테스트를 수행해 Jar 생성
       - name: Build and test with Gradle
         env:
           SPRING_PROFILES_ACTIVE: local
@@ -34,7 +35,7 @@ jobs:
           SPRING_CLOUD_AWS_S3_BUCKET: member-wj-files
         run: ./gradlew clean test bootJar
 
-      # 5. 빌드한 이미지를 올리기 위해 Docker Hub에 로그인
+      # 5. Docker Hub에 로그인하여 이미지 푸시 준비
       - name: Login to Docker Hub
         env:
           DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE }}
@@ -42,38 +43,32 @@ jobs:
         run: |
           echo "$DOCKERHUB_TOKEN" | docker login -u "${DOCKER_IMAGE%%/*}" --password-stdin
 
-      # 6. ARM64 빌드를 위해 QEMU를 세팅
+      # 6. ARM64 이미지 빌드를 위한 QEMU 에뮬레이터 설정
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      # 7. 다양한 아키텍처(ARM 등) 빌드를 지원하는 Docker Buildx 세팅
+      # 7. 멀티 아키텍처 Docker 이미지 빌드를 위한 Buildx 설정
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 8. Dockerfile을 기반으로 이미지를 빌드하고 Docker Hub에 푸시
+      # 8. Docker 이미지를 빌드하고 Docker Hub에 latest와 커밋 해시 태그로 함께 푸시
       - name: Build and push Docker image
         run: |
-          docker buildx build --platform linux/arm64 -t ${{ vars.DOCKER_IMAGE }}:latest --push .
+          docker buildx build --platform linux/arm64 \
+            -t ${{ vars.DOCKER_IMAGE }}:latest \
+            -t ${{ vars.DOCKER_IMAGE }}:${{ github.sha }} \
+            --push .
 
-      # 9. EC2에 SSH로 접속하여 최신 이미지를 다운로드하고 컨테이너 재실행
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
+      # 9. AWS CLI 사용을 위해 GitHub Secrets의 AWS 자격 증명 설정
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          host: ${{ vars.EC2_HOST }}
-          username: ${{ vars.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            docker pull ${{ vars.DOCKER_IMAGE }}:latest
-            docker stop ${{ vars.CONTAINER_NAME }} || true
-            docker rm ${{ vars.CONTAINER_NAME }} || true
-            docker run -d \
-              --name ${{ vars.CONTAINER_NAME }} \
-              -p 8080:8080 \
-              --restart unless-stopped \
-              -e SPRING_PROFILES_ACTIVE=prod \
-              -e AWS_REGION=${{ vars.AWS_REGION }} \
-              -e AWS_DEFAULT_REGION=${{ vars.AWS_REGION }} \
-              -e SPRING_CLOUD_AWS_PARAMETERSTORE_REGION=${{ vars.AWS_REGION }} \
-              -e SPRING_CLOUD_AWS_REGION_STATIC=${{ vars.AWS_REGION }} \
-              -e SPRING_CLOUD_AWS_S3_BUCKET=member-wj-files \
-              ${{ vars.DOCKER_IMAGE }}:latest
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      # 10. Auto Scaling Group의 인스턴스 새로고침을 시작해 새 이미지 반영
+      - name: Start ASG instance refresh
+        run: |
+          aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name ${{ vars.ASG_NAME }}

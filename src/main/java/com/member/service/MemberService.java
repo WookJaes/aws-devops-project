@@ -1,9 +1,5 @@
 package com.member.service;
 
-import java.net.URL;
-import java.time.Duration;
-import java.time.Instant;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -65,12 +61,10 @@ public class MemberService {
 			throw new IllegalArgumentException("프로필 이미지가 없습니다.");
 		}
 
-		URL url = s3Service.getDownloadUrl(member.getProfileImageKey());
-		Instant expiresAt = Instant.now().plus(Duration.ofDays(7));
+		String url = s3Service.getCloudFrontUrl(member.getProfileImageKey());
 
-		log.info("[SERVICE - LOG] Presigned URL 생성 완료 id = {}, expiresAt = {}", id, expiresAt);
-
-		return new ProfileImageUrlResponse(url.toString(), expiresAt.toString());
+		log.info("[SERVICE - LOG] CloudFront URL 생성 완료 id = {}", id);
+		return new ProfileImageUrlResponse(url);
 	}
 
 	private Member findMember(Long id) {

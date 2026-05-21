@@ -1,8 +1,6 @@
 package com.member.service;
 
 import java.io.IOException;
-import java.net.URL;
-import java.time.Duration;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -18,12 +16,13 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class S3Service {
 
-	private static final Duration PRESIGNED_URL_EXPIRATION = Duration.ofDays(7);
-
 	private final S3Template s3Template;
 
 	@Value("${spring.cloud.aws.s3.bucket}")
 	private String bucket;
+
+	@Value("${cloudfront.domain}")
+	private String cloudFrontDomain;
 
 	public String upload(Long memberId, MultipartFile file) {
 		validateImageFile(file);
@@ -44,13 +43,13 @@ public class S3Service {
 		}
 	}
 
-	public URL getDownloadUrl(String key) {
-		log.info("[S3 - LOG] Presigned URL 생성 시작 bucket = {}, key = {}", bucket, key);
+	public String getCloudFrontUrl(String key) {
+		log.info("[S3 - LOG] CloudFront URL 생성 시작 key = {}", key);
 
-		URL url = s3Template.createSignedGetURL(bucket, key, PRESIGNED_URL_EXPIRATION);
+		String url = cloudFrontDomain.endsWith("/")
+			? cloudFrontDomain + key : cloudFrontDomain + "/" + key;
 
-		log.info("[S3 - LOG] Presigned URL 생성 완료 key = {}, expiration = {}", key, PRESIGNED_URL_EXPIRATION);
-
+		log.info("[S3 - LOG] CloudFront URL 생성 완료 key = {}, url = {}", key, url);
 		return url;
 	}
 

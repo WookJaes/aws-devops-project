@@ -1,12 +1,11 @@
 package com.member.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 @Getter
-@RequiredArgsConstructor
+@AllArgsConstructor
 public class ProfileImageUrlResponse {
 
-	private final String url;
-	private final String expiresAt;
+	private final String profileImageUrl;
 }

@@ -31,3 +31,6 @@ management:
 
 info:
   team-name: ${TEAM_NAME}
+
+cloudfront:
+  domain: ${DOMAIN}
