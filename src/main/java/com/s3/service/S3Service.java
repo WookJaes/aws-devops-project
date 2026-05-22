@@ -1,4 +1,4 @@
-package com.member.service;
+package com.s3.service;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -11,6 +11,9 @@ import io.awspring.cloud.s3.S3Template;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * S3 파일 업로드 및 CloudFront URL 생성을 처리하는 서비스
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -24,6 +27,13 @@ public class S3Service {
 	@Value("${cloudfront.domain}")
 	private String cloudFrontDomain;
 
+	/**
+	 * 이미지를 S3에 업로드한다.
+	 *
+	 * @param memberId 팀원 ID
+	 * @param file 업로드할 이미지 파일
+	 * @return 저장된 S3 객체 key
+	 */
 	public String upload(Long memberId, MultipartFile file) {
 		validateImageFile(file);
 
@@ -43,6 +53,12 @@ public class S3Service {
 		}
 	}
 
+	/**
+	 * CloudFront 접근 URL을 생성한다.
+	 *
+	 * @param key S3 객체 key
+	 * @return CloudFront URL
+	 */
 	public String getCloudFrontUrl(String key) {
 		log.info("[S3 - LOG] CloudFront URL 생성 시작 key = {}", key);
 
@@ -53,6 +69,11 @@ public class S3Service {
 		return url;
 	}
 
+	/**
+	 * 업로드 파일이 이미지인지 검증한다.
+	 *
+	 * @param file 업로드 파일
+	 */
 	private void validateImageFile(MultipartFile file) {
 		if (file == null || file.isEmpty()) {
 			log.warn("[S3 - LOG] 업로드 파일 검증 실패 - 빈 파일");
